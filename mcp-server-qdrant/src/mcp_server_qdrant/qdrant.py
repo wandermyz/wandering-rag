@@ -109,14 +109,22 @@ class QdrantConnector:
         # Search in Qdrant
         search_results = await self._client.search(
             collection_name=self._collection_name,
-            query_vector=models.NamedVector(name=vector_name, vector=query_vector),
+            # query_vector=models.NamedVector(name=vector_name, vector=query_vector),
+            query_vector=query_vector,
+            score_threshold=0.3,
             limit=10,
         )
 
         return [
             Entry(
-                content=result.payload["document"],
-                metadata=result.payload.get("metadata"),
+                # content=result.payload["document"],
+                # metadata=result.payload.get("metadata"),
+                content=result.payload["content"][:2000],
+                metadata={
+                    "created_at": result.payload["created_at"],
+                    "last_edited": result.payload["last_edited"],
+                    "title": result.payload["title"]
+                }
             )
             for result in search_results
         ]

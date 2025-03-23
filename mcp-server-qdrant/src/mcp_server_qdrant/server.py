@@ -100,7 +100,7 @@ async def find(ctx: Context, query: str) -> List[str]:
     :param query: The query to use for the search.
     :return: A list of entries found.
     """
-    await ctx.debug(f"Finding results for query {query}")
+    await ctx.debug(f"Finding results for query 12345 {query}")
     qdrant_connector: QdrantConnector = ctx.request_context.lifespan_context[
         "qdrant_connector"
     ]
