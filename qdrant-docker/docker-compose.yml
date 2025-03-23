@@ -7,7 +7,8 @@ services:
       - "127.0.0.1:6333:6333"  # REST API port, only accessible locally
       - "127.0.0.1:6334:6334"  # GRPC port, only accessible locally
     volumes:
-      - ~/Library/Mobile Documents/com~apple~CloudDocs/wandering-rag-data/qdrant-storage:/qdrant/storage  # Store in iCloud
+      # - ~/Library/Mobile Documents/com~apple~CloudDocs/wandering-rag-data/qdrant-storage:/qdrant/storage  # Store in iCloud
+      - ~/wandering-rag-data/qdrant-storage:/qdrant/storage  
     environment:
       - QDRANT_ALLOW_RECOVERY=true  # Enable storage recovery if needed
     restart: unless-stopped

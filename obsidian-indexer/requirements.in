@@ -1,9 +1,11 @@
 # API Clients
-notion-client>=2.1.0
 qdrant-client>=1.7.0
 
 # Embedding providers
 sentence-transformers>=2.5.0  # Local embeddings
+
+# Obsidian Reader
+python-frontmatter
 
 # Utilities
 python-dotenv>=1.0.0

@@ -8,16 +8,14 @@ It uses sentence-transformers for multilingual embeddings.
 from notion_client import Client
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
-from datetime import datetime
 import os
-from typing import Dict, List, Optional, Tuple, NamedTuple
+from typing import Dict, List, NamedTuple
 import hashlib
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 from tenacity import retry, wait_exponential, stop_after_attempt
 from tqdm import tqdm
 import logging
-import json
 
 # Set up logging
 logging.basicConfig(
@@ -40,7 +38,7 @@ class NotionQdrantIndexer:
             load_env: Whether to load environment variables from .env file
         """
         if load_env:
-            load_dotenv()
+            load_dotenv("../.env")
         
         # Required environment variables
         required_vars = ["NOTION_TOKEN", "QDRANT_HOST", "QDRANT_PORT", "NOTION_DATABASES"]
@@ -101,7 +99,6 @@ class NotionQdrantIndexer:
                 )
             )
 
-    @retry(wait=wait_exponential(min=1, max=60), stop=stop_after_attempt(3))
     def _get_embedding(self, text: str) -> List[float]:
         """
         Get embeddings for text using sentence-transformers model.
@@ -142,10 +139,6 @@ class NotionQdrantIndexer:
         
         content = self._extract_text_from_blocks(blocks)
         
-        import json
-        print("json test: ")
-        print(json.dumps(page, indent=2))
-
         return {
             "page_id": page_id,
             "database_name": database.name,

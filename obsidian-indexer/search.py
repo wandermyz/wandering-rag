@@ -1,7 +1,7 @@
 """
-Search Notion Notes in Qdrant
+Search Obsidian Notes in Qdrant
 
-This script allows searching through indexed Notion pages using semantic search.
+This script allows searching through indexed Obsidian pages using semantic search.
 It uses the same sentence-transformers model as the indexer for consistency.
 """
 
@@ -31,7 +31,7 @@ def load_environment():
         "qdrant_port": int(os.getenv("QDRANT_PORT"))
     }
 
-class NotionSearcher:
+class ObsidianSearcher:
     def __init__(self):
         """Initialize the searcher with model and client."""
         env = load_environment()
@@ -42,7 +42,7 @@ class NotionSearcher:
 
     def search_notes(self, query: str, limit: int = 5, score_threshold: float = 0.6) -> List[Dict]:
         """
-        Search for Notion pages similar to the query.
+        Search for Obsidian pages similar to the query.
         
         Args:
             query: Search query text
@@ -57,7 +57,7 @@ class NotionSearcher:
         
         # Search in Qdrant
         search_results = self.qdrant.search(
-            collection_name="notion_notes",
+            collection_name="obsidian-notes",
             query_vector=query_embedding,
             limit=limit,
             score_threshold=score_threshold
@@ -67,8 +67,7 @@ class NotionSearcher:
             {
                 "score": result.score,
                 "title": result.payload["title"],
-                "database": result.payload["database_name"],
-                "url": result.payload["url"],
+                "url": result.payload["note_id"],
                 "content": result.payload["content"][:200] + "..."  # Preview of content
             }
             for result in search_results
@@ -90,7 +89,6 @@ def display_results(results: List[Dict]):
     )
     
     table.add_column("Score", justify="right", style="cyan", width=8)
-    table.add_column("Database", style="green", width=15)
     table.add_column("Title", style="blue")
     table.add_column("Preview", width=50)
     table.add_column("URL", style="bright_blue")  # No width limit to show full URLs
@@ -98,7 +96,6 @@ def display_results(results: List[Dict]):
     for result in results:
         table.add_row(
             f"{result['score']:.3f}",
-            result['database'],
             result['title'],
             result['content'],
             result['url']
@@ -108,12 +105,12 @@ def display_results(results: List[Dict]):
     console.print(table)
     console.print("\n")
 
-def interactive_search(searcher: NotionSearcher, limit: int = 5, threshold: float = 0.6):
+def interactive_search(searcher: ObsidianSearcher, limit: int = 5, threshold: float = 0.6):
     """
     Run interactive search loop.
     
     Args:
-        searcher: NotionSearcher instance
+        searcher: ObsidianSearcher instance
         limit: Number of results to return (from command line args)
         threshold: Minimum similarity score (from command line args)
     """
@@ -142,7 +139,7 @@ def interactive_search(searcher: NotionSearcher, limit: int = 5, threshold: floa
 
 def main():
     """Main entry point"""
-    parser = argparse.ArgumentParser(description="Search through indexed Notion pages")
+    parser = argparse.ArgumentParser(description="Search through indexed Obsidian notes")
     parser.add_argument(
         "query",
         nargs="?",
@@ -165,7 +162,7 @@ def main():
     
     try:
         # Initialize searcher (loads model once)
-        searcher = NotionSearcher()
+        searcher = ObsidianSearcher()
         
         if args.query:
             # Single search mode
