@@ -1,0 +1,14 @@
+# API Clients
+notion-client>=2.1.0
+qdrant-client>=1.7.0
+openai>=1.12.0
+
+# Embedding providers
+sentence-transformers>=2.5.0  # Local embeddings
+nomic>=3.0.0  # Alternative to OpenAI
+
+# Utilities
+python-dotenv>=1.0.0
+tenacity>=8.2.3
+tqdm>=4.66.1
+rich>=13.7.0  # Pretty terminal output 
