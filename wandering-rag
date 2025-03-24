@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# Run wandering-rag using uv
+uv run wandering-rag "$@"

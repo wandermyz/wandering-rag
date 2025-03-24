@@ -1,6 +1,37 @@
-**/.DS_Store
-
 # Environment variables
 **/.env
 
-**/.vscode
+# Generated requirements
+requirements.txt 
+
+# Python virtual environment
+.venv/
+venv/
+ENV/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# uv
+.uv/
+.pytest_cache/
+
+# IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Generated requirements
+requirements.txt 
