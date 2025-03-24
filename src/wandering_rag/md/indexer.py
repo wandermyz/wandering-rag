@@ -13,6 +13,7 @@ from wandering_rag.vector_store import QdrantStore, VectorDoc, VectorDocPayload
 from wandering_rag.embeddings.factory import create_embedding_provider
 from dotenv import load_dotenv
 from datetime import datetime
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from wandering_rag.vector_store.vector_doc import VectorDocSourceType
 
@@ -43,6 +44,26 @@ class MarkdownQdrantIndexer:
         # Parse folder configurations
         self.folders = self._parse_folder_configs()
 
+        # Initialize text splitter
+        self.text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=500,
+            chunk_overlap=100,
+            length_function=len,
+            separators=[
+                "\n\n",
+                "\n",
+                " ",
+                ".",
+                ",",
+                "\u200b",  # Zero-width space
+                "\uff0c",  # Full-width comma
+                "\u3001",  # Ideographic comma
+                "\uff0e",  # Full-width full stop
+                "\u3002",  # Ideographic full stop
+                "",
+            ]
+        )
+
     def _parse_folder_configs(self) -> List[str]:
         """Parse folder paths from environment variables."""
         folders_str = os.environ["MARKDOWN_FOLDERS"]
@@ -60,7 +81,7 @@ class MarkdownQdrantIndexer:
         
         return folders
 
-    async def _get_embedding(self, text: str) -> List[float]:
+    async def _get_embedding(self, documents: str) -> List[float]:
         """
         Get embeddings for text using sentence-transformers model.
         
@@ -70,8 +91,8 @@ class MarkdownQdrantIndexer:
         Returns:
             List of embedding values
         """
-        res = await self.embeddings.embed_documents([text])
-        return res[0]
+        res = await self.embeddings.embed_documents(documents)
+        return res
 
     def _get_content_hash(self, content: str) -> str:
         """
@@ -108,7 +129,7 @@ class MarkdownQdrantIndexer:
             else:
                 doc.payload.extra_data[key] = value
 
-    def _process_note(self, md_file: Path, root_folder: Path) -> VectorDoc:
+    def _process_note(self, md_file: Path, root_folder: Path) -> List[VectorDoc]:
         relative_path = md_file.relative_to(root_folder)
         root = root_folder.stem
         title = md_file.stem
@@ -116,20 +137,28 @@ class MarkdownQdrantIndexer:
 
         fm = frontmatter.load(md_file)
 
-        doc = VectorDoc(source=VectorDocSourceType.Markdown)
-        doc.payload.doc_id = str(root / relative_path)
-        doc.payload.title = title
-        doc.payload.content = fm.content
-        doc.payload.content_hash = self._get_content_hash(fm.content)
-        doc.payload.doc_url = f"obsidian://open?vault={root}&file={relative_path}"
-        doc.payload.extra_data = {
-            "root": root,
-            "subfolder": subfolder,
-        }
+        # Split content into chunks
+        chunks = self.text_splitter.split_text(fm.content)
+        docs = []
 
-        self._standardize_metadata(fm, doc)
+        for i, chunk in enumerate(chunks):
+            doc = VectorDoc(source=VectorDocSourceType.Markdown)
+            doc.payload.doc_id = f"{root}/{relative_path}"
+            doc.payload.title = f"{title}"
+            doc.payload.content = chunk
+            doc.payload.content_hash = self._get_content_hash(chunk)
+            doc.payload.doc_url = f"obsidian://open?vault={root}&file={relative_path}"
+            doc.payload.chunk_index = i
+            doc.payload.total_chunks = len(chunks)
+            doc.payload.extra_data = {
+                "root": root,
+                "subfolder": subfolder,
+            }
 
-        return doc
+            self._standardize_metadata(fm, doc)
+            docs.append(doc)
+
+        return docs
 
     async def index_folder(self, folder: str):
         """
@@ -148,31 +177,39 @@ class MarkdownQdrantIndexer:
         for md_file in tqdm(files, desc=f"Processing {folder}"):
             try:
                 logger.info(f"Parsing note: {md_file}")
-                doc = self._process_note(md_file, folder)
-                doc_id = doc.payload.doc_id
+                docs = self._process_note(md_file, folder)
+                
+                # Prepare list for batch processing
+                docs_to_upsert = []
+                
+                # First pass - check which docs need processing
+                for doc in docs:
+                    doc_id = doc.payload.doc_id
+                    existing_point = self.qd.find_point_by_chunk(doc_id, doc.payload.chunk_index)
 
-                existing_point = self.qd.find_point_by_doc_id(doc_id)
-
-                if not existing_point: # Note doesn't exist
-                    logger.info(f"Adding new note: {doc_id}")
-                    doc.id = uuid.uuid4()
-                    doc.vector = await self._get_embedding(doc.payload.content)
-
-                    self.qd.add_vectors([doc])
-                else:
-                    # Check if content has changed
-                    if existing_point.payload["content_hash"] != doc.payload.content_hash:
-                        logger.info(f"Updating changed note: {doc_id}")
-
-                        doc.id = existing_point.id
-                        doc.vector = await self._get_embedding(doc.payload.content)
-
-                        self.qd.add_vectors([doc])
+                    if not existing_point:  # Chunk doesn't exist
+                        logger.info(f"Adding new chunk: {doc_id}.{doc.payload.chunk_index}")
+                        doc.id = uuid.uuid4()
+                        docs_to_upsert.append(doc)
                     else:
-                        logger.debug(f"Skipping unchanged note: {doc_id}")
+                        # Check if content has changed
+                        if existing_point.payload["content_hash"] != doc.payload.content_hash:
+                            logger.info(f"Updating changed chunk: {doc_id}.{doc.payload.chunk_index}")
+                            doc.id = existing_point.id
+                            docs_to_upsert.append(doc)
+                        else:
+                            logger.debug(f"Skipping unchanged chunk: {doc_id}.{doc.payload.chunk_index}")
+
+                # Get embeddings and add vectors in batch
+                if docs_to_upsert:
+                    contents = [doc.payload.content for doc in docs_to_upsert]
+                    vectors = await self._get_embedding(contents)
+                    for doc, vector in zip(docs_to_upsert, vectors):
+                        doc.vector = vector
+                    self.qd.add_vectors(docs_to_upsert)
                         
             except Exception as e:
-                logger.exception(f"Error processing file {md_file}: {str(e)}", )
+                logger.exception(f"Error processing file {md_file}: {str(e)}")
 
     async def index_all_folders(self):
         """Index all configured folders."""

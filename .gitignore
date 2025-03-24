@@ -35,3 +35,6 @@ build/
 
 # Generated requirements
 requirements.txt 
+
+# Cursor
+.cursor

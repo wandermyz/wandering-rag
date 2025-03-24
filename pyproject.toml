@@ -16,7 +16,8 @@ dependencies = [
     "fastembed>=0.6.0",
     "sentence-transformers>=2.5.0",
     "rich>=13.7.0",
-    "python-frontmatter"
+    "python-frontmatter",
+    "langchain-text-splitters>=0.0.1"
 ]
 
 [project.scripts]
