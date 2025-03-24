@@ -1,10 +1,15 @@
 """Command-line interface for wandering-rag."""
 import click
+import logging
 
 from wandering_rag.notion import notion_cli
 from wandering_rag.md import md_cli
 from wandering_rag.mcp import mcp_cli
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 @click.group()
 @click.version_option()

@@ -1,9 +1,10 @@
 import os
 import logging
-from typing import List, Optional, Dict, Any
+from typing import List, Optional 
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from dotenv import load_dotenv
+from wandering_rag.vector_store.vector_doc import VectorDoc
 
 class QdrantStore:
     """A vector store implementation using Qdrant."""
@@ -69,7 +70,7 @@ class QdrantStore:
             )
 
     # Add methods for vector operations
-    def add_vectors(self, vectors: List[List[float]], payloads: List[Dict[str, Any]], ids: Optional[List[str]] = None) -> None:
+    def add_vectors(self, docs : List[VectorDoc]) -> None:
         """
         Add vectors to the collection.
         
@@ -79,14 +80,30 @@ class QdrantStore:
             ids: Optional list of IDs for each vector
         """
         points = []
-        for i, (vector, payload) in enumerate(zip(vectors, payloads)):
-            point_id = ids[i] if ids else str(i)
-            points.append(models.PointStruct(id=point_id, vector=vector, payload=payload))
+        for doc in docs:
+            point_id = str(doc.id)
+            payload = doc.payload.to_dict()
+            points.append(models.PointStruct(id=point_id, vector=doc.vector, payload=payload))
         
         self.client.upsert(
             collection_name=self.collection_name,
             points=points
         )
+    
+    def find_point_by_doc_id(self, doc_id: str) -> models.Record | None:
+        records, _ = self.client.scroll(
+            collection_name=self.collection_name,
+            scroll_filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="doc_id",
+                        match=models.MatchValue(value=doc_id)
+                    )
+                ]
+            )
+        )
+
+        return records[0] if len(records) > 0 else None
 
     def search(self, query_vector: List[float], limit: int = 10, filter_condition: Optional[models.Filter] = None):
         """

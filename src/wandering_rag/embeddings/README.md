@@ -1,0 +1,1 @@
+Modified from https://github.com/qdrant/mcp-server-qdrant/tree/master/src/mcp_server_qdrant/embeddings
