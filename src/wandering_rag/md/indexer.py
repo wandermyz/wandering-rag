@@ -121,6 +121,7 @@ class MarkdownQdrantIndexer:
         doc.payload.title = title
         doc.payload.content = fm.content
         doc.payload.content_hash = self._get_content_hash(fm.content)
+        doc.payload.doc_url = f"obsidian://open?vault={root}&file={relative_path}"
         doc.payload.extra_data = {
             "root": root,
             "subfolder": subfolder,

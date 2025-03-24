@@ -40,6 +40,7 @@ class VectorDoc:
     id: uuid.UUID 
     vector: List[float]
     payload: VectorDocPayload
+    score: Optional[float] = None
 
     def __init__(self, source: VectorDocSourceType):
         self.payload = VectorDocPayload(source)
