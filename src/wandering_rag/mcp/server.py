@@ -224,3 +224,5 @@ def build_qdrant_filter(
 
     if not must_conditions:
         return None
+
+    return qdrant_client.models.Filter(must=must_conditions)
