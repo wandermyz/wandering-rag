@@ -43,3 +43,19 @@ The CLI provides several subcommands:
 ```bash
 ./wandering-rag mcp run-server
 ```
+
+## Configure for Claude Desktop
+
+```
+{
+    "mcpServers": {
+        "wandering-rag": {
+            "command": "<your git checkout path>/wandering-rag/wandering-rag",
+            "args": ["mcp", "run-server"],
+            "env": {
+                "PATH": "<your home folder>/.local/bin:/usr/bin:$PATH"
+            }
+        }
+    }
+}
+```
