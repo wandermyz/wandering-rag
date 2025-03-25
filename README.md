@@ -12,24 +12,34 @@ Using uv (recommended):
 uv pip install -e .
 ```
 
+Run a Qdrant server if you don't have one:
+
+```bash
+cd qdrant-docker
+docker-compose up -d
+```
+
+Copy `.env.example` as `.env` and specify the Markdown folders (or Obsidian vaults)
+
 ## Usage
 
 The CLI provides several subcommands:
 
-### Notion commands
-
-```bash
-wandering-rag notion index
-```
-
 ### Markdown commands
 
 ```bash
-wandering-rag md index
+./wandering-rag md index
+```
+
+
+### Notion commands (WIP)
+
+```bash
+./wandering-rag notion index
 ```
 
 ### MCP commands
 
 ```bash
-wandering-rag mcp run-server
+./wandering-rag mcp run-server
 ```
