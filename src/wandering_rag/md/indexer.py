@@ -156,6 +156,12 @@ class MarkdownQdrantIndexer:
             }
 
             self._standardize_metadata(fm, doc)
+
+            if doc.payload.created_at is None:
+                doc.payload.created_at = datetime.fromtimestamp(md_file.stat().st_ctime)
+            if doc.payload.last_modified_at is None:
+                doc.payload.last_modified_at = datetime.fromtimestamp(md_file.stat().st_mtime)
+
             docs.append(doc)
 
         return docs
