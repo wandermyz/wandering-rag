@@ -19,3 +19,8 @@ class EmbeddingProvider(ABC):
     def get_dimension(self) -> int:
         """Return the number of dimensions in the embeddings."""
         pass
+
+    @abstractmethod
+    def get_model_name(self) -> int:
+        """Return the model name"""
+        pass

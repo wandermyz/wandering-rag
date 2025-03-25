@@ -1,4 +1,4 @@
 #!/bin/bash
 
 # Run wandering-rag using uv
-uv run wandering-rag "$@"
+uv run --directory $(dirname "$0") wandering-rag "$@"

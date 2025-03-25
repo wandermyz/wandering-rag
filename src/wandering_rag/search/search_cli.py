@@ -1,5 +1,6 @@
 import asyncio
 import click
+import logging
 from rich.console import Console
 from rich.table import Table
 from rich import box
@@ -8,6 +9,8 @@ from wandering_rag.embeddings.factory import create_embedding_provider
 from wandering_rag.vector_store import QdrantStore
 from wandering_rag.embeddings.base import EmbeddingProvider
 from wandering_rag.vector_store.vector_doc import VectorDoc
+
+logger = logging.getLogger(__name__)
 
 async def get_embedding(embedding_provider, text: str) -> List[float]:
     """

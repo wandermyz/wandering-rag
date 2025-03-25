@@ -3,10 +3,12 @@ from typing import List, Dict, Optional, Any
 from enum import Enum
 import uuid
 import datetime
+import json
 
 class VectorDocSourceType(Enum):
     Markdown = "markdown"
     Notion = "notion"
+    MCP = "mcp"
 
 @dataclass
 class VectorDocPayload:
@@ -101,8 +103,27 @@ class VectorDoc:
     def __init__(self, source: VectorDocSourceType):
         self.payload = VectorDocPayload(source)
 
+    def get_metadata_json(self) -> str:
+        """Convert payload to JSON metadata string, excluding content fields."""
+        metadata = {k:v for k,v in self.payload.to_dict().items() 
+                   if k not in ['content', 'content_hash']}
+
+        # Handle enum
+        if metadata.get('source'):
+            metadata['source'] = metadata['source'].value
+            
+        # Handle datetime objects
+        if metadata.get('created_at'):
+            metadata['created_at'] = metadata['created_at'].isoformat()
+        if metadata.get('last_modified_at'):
+            metadata['last_modified_at'] = metadata['last_modified_at'].isoformat()
+            
+        metadata["id"] = self.id
+        metadata["score"] = self.score
+        return json.dumps(metadata)
+
     @staticmethod
-    def from_vector_point(id: uuid.UUID, vector: List[float], score: Optional[float] = None, payload_dict: Optional[Dict[str, Any]] = None):
+    def from_vector_point(id: uuid.UUID, vector: Optional[List[float]] = None, score: Optional[float] = None, payload_dict: Optional[Dict[str, Any]] = None):
         doc = VectorDoc(payload_dict["source"])
         doc.id = id
         doc.vector = vector

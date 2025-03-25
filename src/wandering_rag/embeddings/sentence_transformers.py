@@ -42,3 +42,9 @@ class SentenceTransformerProvider(EmbeddingProvider):
         sample_text = "This is a sample text to get embedding dimensions."
         sample_embedding = self.embedding_model.encode(sample_text)
         return len(sample_embedding)
+
+    def get_model_name(self):
+        """
+        Return the model name
+        """
+        return self.model_name

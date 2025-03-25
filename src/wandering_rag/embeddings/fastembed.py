@@ -43,3 +43,9 @@ class FastEmbedProvider(EmbeddingProvider):
         sample_text = "This is a sample text to get embedding dimensions."
         sample_embedding = list(self.embedding_model.passage_embed([sample_text]))[0]
         return len(sample_embedding)
+
+    def get_model_name(self):
+        """
+        Return the model name
+        """
+        return self.model_name

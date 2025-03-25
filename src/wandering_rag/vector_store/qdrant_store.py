@@ -3,6 +3,7 @@ import logging
 from typing import List, Optional 
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
+import qdrant_client.conversions.common_types as types
 from dotenv import load_dotenv
 from wandering_rag.vector_store.vector_doc import VectorDoc, VectorDocSourceType
 
@@ -60,6 +61,8 @@ class QdrantStore:
             {"field_name": "source", "field_schema": models.PayloadSchemaType.KEYWORD},
             {"field_name": "tags", "field_schema": models.PayloadSchemaType.KEYWORD},
             {"field_name": "chunk_index", "field_schema": models.PayloadSchemaType.INTEGER},
+            {"field_name": "created_at", "field_schema": models.PayloadSchemaType.DATETIME},
+            {"field_name": "last_modified_at", "field_schema": models.PayloadSchemaType.DATETIME},
         ]
         
         for index in required_indexes:
@@ -109,7 +112,7 @@ class QdrantStore:
 
         return records[0] if len(records) > 0 else None
 
-    def search(self, query_vector: List[float], limit: int = 10, threshold: float = 0.6, filter_condition: Optional[models.Filter] = None) -> List[VectorDoc]:
+    def search(self, query_vector: List[float], limit: int = 10, threshold: float = 0.6, filter: Optional[types.Filter] = None) -> List[VectorDoc]:
         """
         Search for similar vectors.
         
@@ -117,14 +120,16 @@ class QdrantStore:
             query_vector: The query vector
             limit: Maximum number of results to return
             threshold: Minimum similarity score threshold
-            filter_condition: Optional filter condition
+            filter_json: Optional filter condition as a JSON string
         
         Returns:
             List of VectorDoc objects
         """
+
         search_results = self.client.search(
             collection_name=self.collection_name,
             query_vector=query_vector,
+            query_filter=filter,
             limit=limit,
             score_threshold=threshold,
         )
@@ -134,3 +139,25 @@ class QdrantStore:
             VectorDoc.from_vector_point(id=result.id, vector=result.vector, score=result.score, payload_dict=result.payload)
             for result in search_results
         ]
+    
+    def scroll(self, limit: int = 10, filter: Optional[types.Filter] = None) -> List[VectorDoc]:
+        """
+        Scroll through the collection.
+        
+        Args:
+            limit: Maximum number of results to return
+            threshold: Minimum similarity score threshold
+            filter: Optional filter condition
+        """
+
+        search_results, _ = self.client.scroll(
+            collection_name=self.collection_name,
+            scroll_filter=filter,
+            limit=limit,
+        )
+
+        return [
+            VectorDoc.from_vector_point(id=result.id, payload_dict=result.payload)
+            for result in search_results
+        ]
+
