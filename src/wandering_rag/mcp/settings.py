@@ -8,7 +8,7 @@ DEFAULT_TOOL_FIND_DESCRIPTION = (
     " - Access memories for further analysis \n"
     " - Get some personal information about the user\n"
     " - Answer questions about \"my memory\" or \"my notes\"\n"
-    "The tool will return a list of notes, which have the following schema: \n"
+    "The tool will return a list of chunks, which have the following schema: \n"
     " - doc_id: Unique identifier for the document\n"
     " - title: Title of the document\n"
     " - source: Source type of the document (Markdown, Notion, etc.)\n"
@@ -20,6 +20,7 @@ DEFAULT_TOOL_FIND_DESCRIPTION = (
     " - created_at: Timestamp when the document was created\n"
     " - last_modified_at: Timestamp when the document was last modified\n"
     " - extra_data: Additional metadata as key-value pairs\n"
+    "Note that when you get a chunk, you can find by `{doc_id:\"<doc_id>\", first_chunk_index:<n>}` to get other chunks of the same document."
 )
 
 DEFAULT_QUERY_LIMIT = 50

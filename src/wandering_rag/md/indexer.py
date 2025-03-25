@@ -123,11 +123,62 @@ class MarkdownQdrantIndexer:
                     # If parsing fails, store the original value
                     doc.payload.last_modified_at = value
             elif key == "tags":
-                doc.payload.tags = value
+                if isinstance(value, list):
+                    doc.payload.tags = value
+                else:
+                    doc.payload.tags = [value]
+                doc.payload.tags = [tag.strip().lower() for tag in doc.payload.tags]
             elif key == "Source URL":
                 doc.payload.source_url = value
             else:
                 doc.payload.extra_data[key] = value
+
+    def _enrich_with_metadata(self, doc: VectorDoc) -> None:
+        """
+        Enrich the document content with metadata from the frontmatter.
+        For better RAG results
+        """
+
+        metadata = []
+        if doc.payload.title:
+            metadata.append(f'title:{doc.payload.title}')
+
+        if "vault" in doc.payload.extra_data["vault"]:
+            metadata.append(f'vault:{doc.payload.extra_data["vault"]}')
+
+        if "folder" in doc.payload.extra_data:
+            metadata.append(f'folder:{doc.payload.extra_data["folder"]}')
+
+        if doc.payload.tags:
+            for tag in doc.payload.tags:
+                metadata.append(f'tag:{tag}')
+
+        doc.payload.content = "\n".join(metadata) + "\n\n" + doc.payload.content
+        
+    def _find_tags(self, chunk: str) -> List[str]:
+        """
+        Find tags in the content.
+        """
+        tags = []
+        is_tag = False
+        tag = []
+
+        for c in chunk:
+            if c == "#":
+                is_tag = True
+            elif is_tag:
+                if c.isspace() or c == "\n":
+                    is_tag = False
+                    if len(tag) > 0:
+                        tags.append("".join(tag).lower())
+                        tag = []
+                else:
+                    tag.append(c)
+        
+        if len(tag) > 0:
+            tags.append("".join(tag).lower())
+
+        return tags
 
     def _process_note(self, md_file: Path, root_folder: Path) -> List[VectorDoc]:
         relative_path = md_file.relative_to(root_folder)
@@ -145,14 +196,12 @@ class MarkdownQdrantIndexer:
             doc = VectorDoc(source=VectorDocSourceType.Markdown)
             doc.payload.doc_id = f"{root}/{relative_path}"
             doc.payload.title = f"{title}"
-            doc.payload.content = chunk
-            doc.payload.content_hash = self._get_content_hash(chunk)
             doc.payload.doc_url = f"obsidian://open?vault={root}&file={relative_path}"
             doc.payload.chunk_index = i
             doc.payload.total_chunks = len(chunks)
             doc.payload.extra_data = {
-                "root": root,
-                "subfolder": subfolder,
+                "vault": root,
+                "folder": subfolder,
             }
 
             self._standardize_metadata(fm, doc)
@@ -161,6 +210,15 @@ class MarkdownQdrantIndexer:
                 doc.payload.created_at = datetime.fromtimestamp(md_file.stat().st_ctime)
             if doc.payload.last_modified_at is None:
                 doc.payload.last_modified_at = datetime.fromtimestamp(md_file.stat().st_mtime)
+
+            doc.payload.content = chunk
+            if i == 0:
+                inline_tags = self._find_tags(chunk)
+                if not doc.payload.tags:
+                    doc.payload.tags = []
+                doc.payload.tags.extend(inline_tags)
+                self._enrich_with_metadata(doc)
+            doc.payload.content_hash = self._get_content_hash(doc.payload.content)
 
             docs.append(doc)
 
