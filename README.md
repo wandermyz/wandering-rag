@@ -1,6 +1,6 @@
 # Wandering RAG
 
-A CLI tool for personal RAG that retrieves data from Notion, Obsidian, Apple Notes, etc., stored in Qdrand and exposed as an MCP.
+A CLI tool for personal RAG that retrieves data from Notion, Obsidian, Apple Notes, etc., stored in Qdrand and exposed as an MCP server. 
 
 (So that Claude Desktop successfully answers my question "When did I adopt my cat and when did I change her cat litter most recently? ")
 
