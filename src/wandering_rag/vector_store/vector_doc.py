@@ -71,7 +71,7 @@ class VectorDocPayload:
                 if isinstance(value, str):
                     try:
                         # Convert string to datetime
-                        setattr(payload, key, datetime.datetime.fromisoformat(value))
+                        setattr(payload, key, datetime.datetime.fromisoformat(value.replace("Z", "+00:00")))
                     except ValueError:
                         # If parsing fails, store the original value
                         setattr(payload, key, value)
