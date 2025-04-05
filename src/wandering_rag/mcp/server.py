@@ -29,26 +29,25 @@ async def server_lifespan(server: Server) -> AsyncIterator[dict]:  # noqa
         # Embedding provider is created with a factory function so we can add
         # some more providers in the future. Currently, only FastEmbed is supported.
         embedding_provider = create_embedding_provider()
-        qdrant_store = QdrantStore(vector_size=embedding_provider.get_dimension())
-        logger.info(
-            f"Using embedding provider {type(embedding_provider)} with "
-            f"model {embedding_provider.get_model_name()}"
-        )
 
-        yield {
-            "embedding_provider": embedding_provider,
-            "qdrant_store": qdrant_store,
-        }
+        async with QdrantStore(vector_size=embedding_provider.get_dimension()) as qdrant_store:
+            logger.info(
+                f"Using embedding provider {type(embedding_provider)} with "
+                f"model {embedding_provider.get_model_name()}"
+            )
+
+            yield {
+                "embedding_provider": embedding_provider,
+                "qdrant_store": qdrant_store,
+            }
     except Exception as e:
         logger.exception(e)
         raise e
-    finally:
-        pass
 
 
 # FastMCP is an alternative interface for declaring the capabilities
 # of the server. Its API is based on FastAPI.
-mcp = FastMCP("wandering-rag", lifespan=server_lifespan, debug=True)
+mcp = FastMCP("wandering-rag", lifespan=server_lifespan, debug=True, port=8001)
 
 
 @mcp.tool(name="wandering-rag-store", description=DEFAULT_TOOL_STORE_DESCRIPTION)
@@ -98,8 +97,8 @@ async def find(
     doc_id: Optional[str] = None,
     tag: Optional[str] = None,
     first_chunk_index: Optional[int] = None,
-    created_before: Optional[str] = None,
-    created_after: Optional[str] = None,
+    created_before: Optional[datetime.datetime] = None,
+    created_after: Optional[datetime.datetime] = None,
     last_modified_before: Optional[datetime.datetime] = None,
     last_modified_after: Optional[datetime.datetime] = None,
 ) -> List[str]:
@@ -108,17 +107,16 @@ async def find(
     :param ctx: The context for the request.
     :param query: The query to use for full-text search. If not provided, the tool will scroll through the collection.
     :param doc_id: Retrieve chunks by its doc_id
-    :param any_tags: Retrieve chunks with any of the tags
+    :param tag: Retrieve chunks with specified tag. 
     :param first_chunk_index: Retrieve chunks starting from this position
     :param created_before: Retrieve chunks created before this timestamp
     :param created_after: Retrieve chunks created after this timestamp
     :param last_modified_before: Retrieve chunks last modified before this timestamp
     :param last_modified_after: Retrieve chunks last modified after this timestamp
-    :param filter: A JSON dictionary of freeform filters. 
     :return: A list of entries found.
     """
     await ctx.info(f"Finding results for query {query}")
-    logger.info(f"Finding results for query: {query}, filter: {filter} of type {type(filter)}")
+    logger.info(f"Finding results for query: {query}")
 
     try: 
         qdrant_filter = build_qdrant_filter(

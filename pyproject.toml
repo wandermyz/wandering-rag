@@ -18,7 +18,7 @@ dependencies = [
     "rich>=13.7.0",
     "python-frontmatter",
     "langchain-text-splitters>=0.0.1",
-    "mcp[cli]>=1.3.0",
+    "mcp[cli]>=1.6.0",
     "notion-client>=2.2.1",
 ]
 

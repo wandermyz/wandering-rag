@@ -7,6 +7,8 @@ import qdrant_client.conversions.common_types as types
 from dotenv import load_dotenv
 from wandering_rag.vector_store.vector_doc import VectorDoc, VectorDocSourceType
 
+logger = logging.getLogger(__name__)
+
 class QdrantStore:
     """A vector store implementation using Qdrant."""
     
@@ -38,6 +40,14 @@ class QdrantStore:
             raise ValueError("QDRANT_HOST and QDRANT_PORT must be defined in the environment variables.")
         
         return QdrantClient(host=host, port=int(port))
+    
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Clean up resources """
+        self.client.close()
+        logger.info("Qdrant client closed")
     
     def ensure_collection_exists(self) -> None:
         """Ensure that the collection exists, create it if it doesn't."""
