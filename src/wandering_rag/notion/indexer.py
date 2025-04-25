@@ -29,17 +29,21 @@ class NotionQdrantIndexer:
         if missing_vars:
             raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
 
+    def _init_notion(self):
         # Initialize Notion client
         logger.info("Initializing Notion client...")
         self.notion = Client(auth=os.environ["NOTION_TOKEN"])
         logger.info("Notion client initialized")
 
+    async def _init_embeddings(self):
         # Load embeddings
         logger.info("Loading embeddings...")
         self.embeddings = create_embedding_provider()
         vector_size = self.embeddings.get_dimension()
         logger.info(f"Embeddings loaded. dim={vector_size}")
+        return vector_size
 
+    def _init_qdrant(self, vector_size: int):
         # Connect to Qdrant
         self.qd = QdrantStore(vector_size=vector_size)
 
@@ -240,6 +244,10 @@ class NotionQdrantIndexer:
         """
         Traverse all notes in Notion and index them into Qdrant.
         """
+        self._init_notion()
+        vector_size = await self._init_embeddings()
+        self._init_qdrant(vector_size)
+
         logger.info("Searching for all Notion pages...")
         
         try:
